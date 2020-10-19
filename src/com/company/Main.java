@@ -1,7 +1,9 @@
 package com.company;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,8 +21,10 @@ public class Main {
 	// write your code here
 
         String targetName = "астат";
-        String mainPath = "C:\\222";
-        File dir = new File("C:\\222");
+        String mainPath;
+        Path filesLocationPath = Path.of("D:\\Projects\\filesLocation.txt");
+        mainPath = Files.readString(filesLocationPath);
+        //File dir = new File("C:\\222");
         try(DirectoryStream<Path> files = Files.newDirectoryStream(Path.of(mainPath))) {
             for(Path path : files){
                // File file = new File(String.valueOf(path));
@@ -31,7 +35,7 @@ public class Main {
                     System.out.println(stringDate);
                     Date date =dateParser(stringDate);
                    System.out.println(date);
-                   Path newDir = Path.of("C:\\222\\sorted");
+                   Path newDir = Path.of("D:\\Projects\\sorted");
                    if(Files.exists(newDir)) {
                        Files.copy(path, newDir.resolve(path.getFileName()), StandardCopyOption.REPLACE_EXISTING);
                    } else {
