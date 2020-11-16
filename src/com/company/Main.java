@@ -10,44 +10,92 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, ParseException {
 	// write your code here
 
-        String targetName = "астат";
-        String mainPath;
-        Path filesLocationPath = Path.of("D:\\Projects\\filesLocation.txt");
-        mainPath = Files.readString(filesLocationPath);
-        //File dir = new File("C:\\222");
-        try(DirectoryStream<Path> files = Files.newDirectoryStream(Path.of(mainPath))) {
-            for(Path path : files){
-               // File file = new File(String.valueOf(path));
 
-                if(Files.isRegularFile(path) && path.getFileName().toString().toLowerCase().contains(targetName)){
-                    String[] dd = path.getFileName().toString().split("\\D");
-                    String stringDate = dd[0];
-                    System.out.println(stringDate);
-                    Date date =dateParser(stringDate);
-                   System.out.println(date);
-                   Path newDir = Path.of("D:\\Projects\\sorted");
-                   if(Files.exists(newDir)) {
-                       Files.copy(path, newDir.resolve(path.getFileName()), StandardCopyOption.REPLACE_EXISTING);
-                   } else {
-                       Files.createDirectory(newDir);
-                       Files.copy(path,newDir.resolve(path.getFileName()),StandardCopyOption.REPLACE_EXISTING);
-                   }
+        fileHandler(getPreparedFilesNames());
+
+    }
+    public static void fileHandler(List<String> fileNamesForCopy) throws IOException, ParseException {
+        for (String fileName : fileNamesForCopy){
+
+            String[] temp = fileName.split("\\\\");
+            int indexOfLastElement = temp.length-1;
+            String[] arrayForDateParsing = temp[indexOfLastElement].split("\\D");
+            Date date = dateParser(arrayForDateParsing[0]);
+            if(date.getTime()>parsedDateList().get(0).getTime() && date.getTime()<parsedDateList().get(1).getTime()){
+                Path newDir = getLocationForCopy();
+                if(!Files.exists(newDir)){
+                    Files.createDirectory(newDir);
+                }
+                Path newDir1;
+                for(String string : getSearchList()){
+                    if(fileName.toLowerCase().contains(string)){
+                        newDir1=Path.of(getLocationForCopy()+"\\\\"+string);
+                        if (!Files.exists(newDir1)) {
+                            Files.createDirectory(newDir1);
+                        }
+                        Files.copy(Path.of(fileName),newDir1.resolve(Path.of(temp[indexOfLastElement]+" -" + temp[3]+".pdf")),StandardCopyOption.REPLACE_EXISTING);// сделать приписку с филиалом
+                    }
                 }
             }
         }
-
-
     }
+    /*Подготавливаем список файлов для обработки */
+    public static List<String> getPreparedFilesNames() throws IOException {
+        List<String> preparedNameList = new ArrayList<>();
+        for(String fileName : allFiles()){
+            for(String searchFileName : getSearchList() ){
+                if(fileName.toLowerCase().contains(searchFileName.toLowerCase())){
+                    preparedNameList.add(fileName);
+                }
+            }
+        }
+        return preparedNameList;
+    }
+    /* Получаем список всех файлов  */
+    public static List<String> allFiles() throws IOException {
+        List<String> allFiles;
+        try (Stream<Path> walk = Files.walk(getFilesLocationPath())) {
+            allFiles = walk.filter(Files::isRegularFile)
+                    .map(Path::toString).collect(Collectors.toList());
+        }
+        return allFiles;
+    }
+    /* Метод считывает список из двух элементов. Первый элемент - дата с, второй элемент - дата до*/
+    public static List<Date> parsedDateList() throws IOException, ParseException {
+        Path dateConfigPath = Path.of("D:\\Projects\\dateConfig.txt");
+        List<String> parsedList = new ArrayList<>();
+        parsedList=Files.readAllLines(dateConfigPath);
+        List<Date> parsedDateList = new ArrayList<>();
+        SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy");
+        parsedDateList.add(format.parse(parsedList.get(0)));
+        parsedDateList.add(format.parse(parsedList.get(1)));
+        return parsedDateList;
+    }
+                                                                    /*метод парсит список для поиска из файла*/
+    public static List<String> getSearchList() throws IOException {
+        Path searchListpath = Path.of("D:\\Projects\\SearchingList.txt");
+        return Files.readAllLines(searchListpath);
+    }
+                                                                /* метод считывает папку поиска из файла*/
+    public static Path getFilesLocationPath() throws IOException {
+        Path filesLocationPath = Path.of("D:\\Projects\\filesLocation.txt");
+        return Path.of(Files.readString(filesLocationPath));
+    }
+                                                            /*метод считывает папку куда копировать отсортированные файлы*/
+    public static Path getLocationForCopy() throws IOException {
+        Path locationForCopy = Path.of("D:\\Projects\\copydirectory.txt");
+        return Path.of(Files.readString(locationForCopy));
+    }
+    /*Парсер даты из строки*/
     public static Date dateParser(String stringDateForParsing) {
         SimpleDateFormat format = new SimpleDateFormat();
         Calendar calendar = new GregorianCalendar();
